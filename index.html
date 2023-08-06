@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Пила</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    .container {
+      margin-top: 100px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #questionContainer,
+    #playerContainer,
+    #waitingContainer {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 300px;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+
+    #playerContainer.show,
+    #questionContainer.show,
+    #waitingContainer.show {
+      display: flex;
+    }
+
+    #sawImage {
+      width: 200px;
+      height: 200px;
+      margin-bottom: 20px;
+    }
+
+    #optionsContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .optionBtn {
+      margin: 10px;
+      padding: 10px 20px;
+    }
+
+    #resultText {
+      font-size: 24px;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Выберите роль:</h1>
+    <button id="playerBtn">Игрок</button>
+    <button id="sawBtn">Пила</button>
+    <button id="changeRoleBtn" style="display: none;">Сменить роль</button>
+  </div>
+
+  <div id="questionContainer" class="hidden">
+    <h2>Вопрос от Пилы:</h2>
+    <p id="puzzleQuestion"></p>
+    <div id="puzzleOptions">
+      <button class="optionBtn"></button>
+      <button class="optionBtn"></button>
+      <button class="optionBtn"></button>
+      <button class="optionBtn"></button>
+    </div>
+    <button id="setAnswerBtn">Установить правильный ответ</button>
+    <button id="startBtn">Запуск</button>
+  </div>
+
+  <div id="playerContainer" class="hidden">
+    <h2 id="playerRole">ОЖИДАНИЕ</h2>
+    <img src="saw_image.jpg" alt="Пила" id="sawImage">
+    <div id="optionsContainer">
+      <button class="optionBtn">Вариант 1</button>
+      <button class="optionBtn">Вариант 2</button>
+      <button class="optionBtn">Вариант 3</button>
+      <button class="optionBtn">Вариант 4</button>
+    </div>
+    <p id="resultText"></p>
+  </div>
+
+  <div id="waitingContainer" class="hidden">
+    <h2>ОЖИДАНИЕ</h2>
+  </div>
+
+  <script>
+    const playerBtn = document.getElementById('playerBtn');
+    const sawBtn = document.getElementById('sawBtn');
+    const changeRoleBtn = document.getElementById('changeRoleBtn');
+    const questionContainer = document.getElementById('questionContainer');
+    const playerContainer = document.getElementById('playerContainer');
+    const waitingContainer = document.getElementById('waitingContainer');
+    const startBtn = document.getElementById('startBtn');
+    const setAnswerBtn = document.getElementById('setAnswerBtn');
+    const questionInput = document.getElementById('questionInput');
+    const puzzleQuestion = document.getElementById('puzzleQuestion');
+    const puzzleOptions = document.getElementById('puzzleOptions');
+    const resultText = document.getElementById('resultText');
+    const sawImage = document.getElementById('sawImage');
+    const correctOption1 = document.getElementById('correctOption1');
+    const correctOption2 = document.getElementById('correctOption2');
+    const correctOption3 = document.getElementById('correctOption3');
+    const correctOption4 = document.getElementById('correctOption4');
+
+    let question = '';
+    let correctOption = 0;
+    let isSaw = false;
+
+    playerBtn.addEventListener('click', () => {
+      isSaw = false;
+      showContainer('playerContainer');
+      resultText.textContent = '';
+      optionsContainer.style.display = 'none';
+      changeRoleBtn.style.display = 'inline-block';
+    });
+
+    sawBtn.addEventListener('click', () => {
+      isSaw = true;
+      showContainer('waitingContainer');
+      resultText.textContent = '';
+      optionsContainer.style.display = 'none';
+      changeRoleBtn.style.display = 'none';
+    });
+
+    changeRoleBtn.addEventListener('click', () => {
+      fetch('game.php?change_role=true', { method: 'GET' })
+        .then((response) => response.text())
+        .then((data) => {
+          if (data === 'success') {
+            document.getElementById('playerRole').textContent = 'ОЖИДАНИЕ';
+            showContainer('playerContainer');
+            resultText.textContent = '';
+            optionsContainer.style.display = 'none';
+            changeRoleBtn.style.display = 'none';
+          }
+        })
+        .catch((error) => console.error('Error:', error));
+    });
+
+    startBtn.addEventListener('click', () => {
+      question = questionInput.value;
+      correctOption = 0;
+      if (isSaw) {
+        correctOption = getCorrectOption();
+        showContainer('playerContainer');
+        sawImage.style.display = 'block';
+        optionsContainer.style.display = 'flex';
+        optionsContainer.querySelectorAll('.optionBtn').forEach((btn, index) => {
+          btn.textContent = questionData['option' + (index + 1)];
+          btn.disabled = false;
+        });
+      } else {
+        showContainer('questionContainer');
+        setAnswerBtn.style.display = 'inline-block';
+        document.getElementById('puzzleQuestion').textContent = questionData.question;
+        document.querySelectorAll('.optionBtn').forEach((btn, index) => {
+          btn.textContent = questionData['option' + (index + 1)];
+        });
+      }
+    });
+
+    function getCorrectOption() {
+      let correctOption = 0;
+      if (correctOption1.checked) correctOption = 1;
+      else if (correctOption2.checked) correctOption = 2;
+      else if (correctOption3.checked) correctOption = 3;
+      else if (correctOption4.checked) correctOption = 4;
+      return correctOption;
+    }
+
+    function showContainer(containerId) {
+      document.querySelectorAll('.container').forEach((container) => {
+        container.classList.add('hidden');
+      });
+
+      if (containerId === 'waitingContainer') {
+        document.getElementById('playerRole').textContent = 'ОЖИДАНИЕ';
+      }
+
+      document.getElementById(containerId).classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
